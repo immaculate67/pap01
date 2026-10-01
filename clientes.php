@@ -8,15 +8,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     if ($action === 'save') {
         $id = (int)($_POST['id'] ?? 0);
-        $nome = trim($_POST['nome'] ?? ''); $contacto = trim($_POST['contacto'] ?? ''); $email = trim($_POST['email'] ?? ''); $notas = trim($_POST['notas'] ?? '');
-        if ($nome === '') flash('danger','O nome do cliente é obrigatório.');
-        else {
-            if ($id > 0) { $s=$pdo->prepare('UPDATE clientes SET nome=?, contacto=?, email=?, notas=? WHERE id=?'); $s->execute([$nome,$contacto,$email,$notas,$id]); flash('success','Cliente atualizado.'); }
-            else { $s=$pdo->prepare('INSERT INTO clientes(nome,contacto,email,notas) VALUES(?,?,?,?)'); $s->execute([$nome,$contacto,$email,$notas]); flash('success','Cliente criado.'); }
+        $nome = trim((string)($_POST['nome'] ?? ''));
+        $contacto = trim((string)($_POST['contacto'] ?? ''));
+        $email = trim((string)($_POST['email'] ?? ''));
+        $notas = trim((string)($_POST['notas'] ?? ''));
+
+        if ($nome === '') {
+            flash('danger', 'O nome do cliente é obrigatório.');
+        } elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            flash('danger', 'O email introduzido não é válido.');
+        } else {
+            if ($id > 0) {
+                $s = $pdo->prepare('UPDATE clientes SET nome=?, contacto=?, email=?, notas=? WHERE id=?');
+                $s->execute([$nome, $contacto, $email, $notas, $id]);
+                flash('success', 'Cliente atualizado.');
+            } else {
+                $s = $pdo->prepare('INSERT INTO clientes(nome,contacto,email,notas) VALUES(?,?,?,?)');
+                $s->execute([$nome, $contacto, $email, $notas]);
+                flash('success', 'Cliente criado.');
+            }
         }
         redirect('clientes.php');
     }
-    if ($action === 'delete') { $id=(int)$_POST['id']; $s=$pdo->prepare('DELETE FROM clientes WHERE id=?'); $s->execute([$id]); flash('success','Cliente eliminado.'); redirect('clientes.php'); }
+    if ($action === 'delete') {
+        $id = (int)($_POST['id'] ?? 0);
+        $s = $pdo->prepare('DELETE FROM clientes WHERE id=?');
+        $s->execute([$id]);
+        flash('success', 'Cliente eliminado.');
+        redirect('clientes.php');
+    }
 }
 
 $q = trim($_GET['q'] ?? '');

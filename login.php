@@ -7,20 +7,26 @@ if (is_logged_in()) redirect('dashboard.php');
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
 
-    $stmt = $pdo->prepare('SELECT id, nome, username, password_hash FROM utilizadores WHERE username = ? LIMIT 1');
-    $stmt->execute([$username]);
-    $user = $stmt->fetch();
+    $username = trim((string)($_POST['username'] ?? ''));
+    $password = (string)($_POST['password'] ?? '');
 
-    if ($user && password_verify($password, $user['password_hash'])) {
-        session_regenerate_id(true);
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['user'] = ['nome' => $user['nome'], 'username' => $user['username']];
-        redirect('dashboard.php');
+    if ($username === '' || $password === '') {
+        $error = 'Preenche o utilizador e a palavra-passe.';
+    } else {
+        $stmt = $pdo->prepare('SELECT id, nome, username, password_hash FROM utilizadores WHERE username = ? LIMIT 1');
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
+
+        if ($user && password_verify($password, $user['password_hash'])) {
+            session_regenerate_id(true);
+            $_SESSION['user_id'] = (int)$user['id'];
+            $_SESSION['user'] = ['nome' => $user['nome'], 'username' => $user['username']];
+            redirect('dashboard.php');
+        }
+
+        $error = 'Utilizador ou palavra-passe incorretos.';
     }
-    $error = 'Utilizador ou palavra-passe incorretos.';
 }
 ?>
 <!doctype html>

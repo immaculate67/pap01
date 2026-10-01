@@ -4,9 +4,12 @@ $pageTitle = 'Produtos';
 require_once __DIR__ . '/includes/header.php';
 if ($_SERVER['REQUEST_METHOD']==='POST') {
  verify_csrf(); $action=$_POST['action']??'';
- if($action==='save'){ $id=(int)($_POST['id']??0); $nome=trim($_POST['nome']??''); $preco=(float)str_replace(',','.',$_POST['preco']??0); $stock=(int)($_POST['stock']??0); $descricao=trim($_POST['descricao']??'');
-  if($nome==='') flash('danger','O nome do produto é obrigatório.'); else { if($id){$s=$pdo->prepare('UPDATE produtos SET nome=?,preco=?,stock=?,descricao=? WHERE id=?');$s->execute([$nome,$preco,$stock,$descricao,$id]);flash('success','Produto atualizado.');}else{$s=$pdo->prepare('INSERT INTO produtos(nome,preco,stock,descricao) VALUES(?,?,?,?)');$s->execute([$nome,$preco,$stock,$descricao]);flash('success','Produto criado.');}} redirect('produtos.php'); }
- if($action==='delete'){ $id=(int)$_POST['id']; try{$s=$pdo->prepare('DELETE FROM produtos WHERE id=?');$s->execute([$id]);flash('success','Produto eliminado.');}catch(PDOException $e){flash('danger','Não é possível eliminar um produto que já esteja associado a vendas.');} redirect('produtos.php'); }
+ if($action==='save'){ $id=(int)($_POST['id']??0); $nome=trim((string)($_POST['nome']??'')); $preco=(float)str_replace(',','.',(string)($_POST['preco'] ?? '0')); $stock=(int)($_POST['stock']??0); $descricao=trim((string)($_POST['descricao'] ?? ''));
+  if($nome===''){ flash('danger','O nome do produto é obrigatório.'); }
+  elseif($preco < 0){ flash('danger','O preço não pode ser negativo.'); }
+  elseif($stock < 0){ flash('danger','O stock não pode ser negativo.'); }
+  else { if($id){$s=$pdo->prepare('UPDATE produtos SET nome=?,preco=?,stock=?,descricao=? WHERE id=?');$s->execute([$nome,$preco,$stock,$descricao,$id]);flash('success','Produto atualizado.');}else{$s=$pdo->prepare('INSERT INTO produtos(nome,preco,stock,descricao) VALUES(?,?,?,?)');$s->execute([$nome,$preco,$stock,$descricao]);flash('success','Produto criado.');}} redirect('produtos.php'); }
+ if($action==='delete'){ $id=(int)($_POST['id'] ?? 0); try{$s=$pdo->prepare('DELETE FROM produtos WHERE id=?');$s->execute([$id]);flash('success','Produto eliminado.');}catch(PDOException $e){flash('danger','Não é possível eliminar um produto que já esteja associado a vendas.');} redirect('produtos.php'); }
 }
 $q=trim($_GET['q']??''); if($q){$s=$pdo->prepare('SELECT * FROM produtos WHERE nome LIKE ? ORDER BY nome');$s->execute(["%$q%"]);$products=$s->fetchAll();}else $products=$pdo->query('SELECT * FROM produtos ORDER BY nome')->fetchAll();
 $edit=null;if(isset($_GET['edit'])){$s=$pdo->prepare('SELECT * FROM produtos WHERE id=?');$s->execute([(int)$_GET['edit']]);$edit=$s->fetch()?:null;}
