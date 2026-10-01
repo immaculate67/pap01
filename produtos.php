@@ -1,0 +1,17 @@
+<?php
+declare(strict_types=1);
+$pageTitle = 'Produtos';
+require_once __DIR__ . '/includes/header.php';
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+ verify_csrf(); $action=$_POST['action']??'';
+ if($action==='save'){ $id=(int)($_POST['id']??0); $nome=trim($_POST['nome']??''); $preco=(float)str_replace(',','.',$_POST['preco']??0); $stock=(int)($_POST['stock']??0); $descricao=trim($_POST['descricao']??'');
+  if($nome==='') flash('danger','O nome do produto é obrigatório.'); else { if($id){$s=$pdo->prepare('UPDATE produtos SET nome=?,preco=?,stock=?,descricao=? WHERE id=?');$s->execute([$nome,$preco,$stock,$descricao,$id]);flash('success','Produto atualizado.');}else{$s=$pdo->prepare('INSERT INTO produtos(nome,preco,stock,descricao) VALUES(?,?,?,?)');$s->execute([$nome,$preco,$stock,$descricao]);flash('success','Produto criado.');}} redirect('produtos.php'); }
+ if($action==='delete'){ $id=(int)$_POST['id']; try{$s=$pdo->prepare('DELETE FROM produtos WHERE id=?');$s->execute([$id]);flash('success','Produto eliminado.');}catch(PDOException $e){flash('danger','Não é possível eliminar um produto que já esteja associado a vendas.');} redirect('produtos.php'); }
+}
+$q=trim($_GET['q']??''); if($q){$s=$pdo->prepare('SELECT * FROM produtos WHERE nome LIKE ? ORDER BY nome');$s->execute(["%$q%"]);$products=$s->fetchAll();}else $products=$pdo->query('SELECT * FROM produtos ORDER BY nome')->fetchAll();
+$edit=null;if(isset($_GET['edit'])){$s=$pdo->prepare('SELECT * FROM produtos WHERE id=?');$s->execute([(int)$_GET['edit']]);$edit=$s->fetch()?:null;}
+?>
+<div class="page-intro"><div><span class="section-tag">CATÁLOGO</span><p>Produtos, preços e quantidades disponíveis.</p></div><a href="produto_form.php" class="btn btn-primary app-btn"><i class="bi bi-plus-lg"></i> Novo produto</a></div>
+<div class="toolbar"><form class="search-box" method="get"><i class="bi bi-search"></i><input name="q" value="<?= e($q) ?>" placeholder="Pesquisar produto..."><button>Pesquisar</button></form></div>
+<section class="panel-card table-card"><div class="panel-head"><div><span class="panel-label">PRODUTOS</span><h2><?= count($products) ?> itens</h2></div></div><div class="table-responsive"><table class="table app-table"><thead><tr><th>Produto</th><th>Preço</th><th>Stock</th><th>Estado</th><th></th></tr></thead><tbody><?php foreach($products as $p): ?><tr><td><strong><?= e($p['nome']) ?></strong><span class="table-sub"><?= e($p['descricao']) ?></span></td><td>€ <?= number_format((float)$p['preco'],2,',',' ') ?></td><td><?= (int)$p['stock'] ?></td><td><span class="status-pill <?= (int)$p['stock']<=3?'critical':((int)$p['stock']<=STOCK_LOW_THRESHOLD?'low':'ok') ?>"><?= (int)$p['stock']<=3?'CRÍTICO':((int)$p['stock']<=STOCK_LOW_THRESHOLD?'BAIXO':'OK') ?></span></td><td class="text-end"><a class="icon-btn" href="produto_form.php?edit=<?= (int)$p['id'] ?>"><i class="bi bi-pencil"></i></a><form class="d-inline" method="post" onsubmit="return confirm('Eliminar este produto?')"><input type="hidden" name="csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int)$p['id'] ?>"><button class="icon-btn danger"><i class="bi bi-trash3"></i></button></form></td></tr><?php endforeach; if(!$products): ?><tr><td colspan="5" class="empty-state">Nenhum produto encontrado.</td></tr><?php endif; ?></tbody></table></div></section>
+<?php require_once __DIR__ . '/includes/footer.php'; ?>

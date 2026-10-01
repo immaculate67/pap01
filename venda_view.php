@@ -1,0 +1,8 @@
+<?php
+declare(strict_types=1);
+$pageTitle='Venda'; require_once __DIR__.'/includes/header.php';
+$id=(int)($_GET['id']??0);$s=$pdo->prepare('SELECT v.*,c.nome cliente,c.contacto FROM vendas v LEFT JOIN clientes c ON c.id=v.cliente_id WHERE v.id=?');$s->execute([$id]);$v=$s->fetch();if(!$v){flash('danger','Venda não encontrada.');redirect('vendas.php');}$s=$pdo->prepare('SELECT i.*,p.nome FROM itens_venda i JOIN produtos p ON p.id=i.produto_id WHERE i.venda_id=?');$s->execute([$id]);$items=$s->fetchAll();
+?>
+<div class="page-intro"><div><span class="section-tag">VENDA #<?= $id ?></span><p><?= date('d/m/Y H:i',strtotime($v['data_venda'])) ?> · <?= e($v['cliente']?:'Cliente não identificado') ?></p></div><a href="vendas.php" class="btn btn-ghost">Voltar ao histórico</a></div>
+<div class="dashboard-grid single-main"><section class="panel-card"><div class="panel-head"><div><span class="panel-label">REGISTO</span><h2>Detalhes da venda</h2></div><div class="sale-total compact"><span>TOTAL</span><strong>€ <?= number_format((float)$v['total'],2,',',' ') ?></strong></div></div><div class="table-responsive"><table class="table app-table"><thead><tr><th>Item</th><th>Qtd.</th><th>Preço unit.</th><th>Subtotal</th></tr></thead><tbody><?php foreach($items as $it): ?><tr><td><strong><?= e($it['nome']) ?></strong></td><td><?= (int)$it['quantidade'] ?></td><td>€ <?= number_format((float)$it['preco_unitario'],2,',',' ') ?></td><td>€ <?= number_format((float)$it['subtotal'],2,',',' ') ?></td></tr><?php endforeach; ?></tbody></table></div></section></div>
+<?php require_once __DIR__.'/includes/footer.php'; ?>
